@@ -7,18 +7,61 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 
-add_executable(etrobo_object_detection_tflite src/etrobo_object_detection_tflite.cpp)
-target_include_directories(etrobo_object_detection_tflite PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_compile_features(etrobo_object_detection_tflite PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+# Find TensorFlow Lite
+# find_path(TENSORFLOW_LITE_INCLUDE_DIR
+#   NAMES tensorflow/lite/interpreter.h
+#   PATHS /usr/include /usr/local/include
+# )
+# 
+# find_library(TENSORFLOW_LITE_LIB
+#   NAMES tensorflow-lite
+#   PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+# )
+# 
+# if(NOT TENSORFLOW_LITE_INCLUDE_DIR OR NOT TENSORFLOW_LITE_LIB)
+#   message(FATAL_ERROR "TensorFlow Lite not found. Please install tensorflow-lite-dev package.")
+# endif()
 
-install(TARGETS etrobo_object_detection_tflite
-  DESTINATION lib/${PROJECT_NAME})
+add_subdirectory(
+  "/home/ouwa/work/tensorflow/tensorflow/lite"
+  "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-lite" EXCLUDE_FROM_ALL)
+
+include_directories(
+  include
+  ${TENSORFLOW_LITE_INCLUDE_DIR}
+)
+
+# C++ executable
+add_executable(etrobo_object_detection_tflite
+  src/etrobo_object_detection_tflite.cpp
+)
+
+ament_target_dependencies(etrobo_object_detection_tflite
+  rclcpp
+  sensor_msgs
+  cv_bridge
+  OpenCV
+)
+
+target_link_libraries(etrobo_object_detection_tflite
+  ${TENSORFLOW_LITE_LIB}
+  tensorflow-lite
+)
+
+install(TARGETS
+  etrobo_object_detection_tflite
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+  include/
+  DESTINATION include/
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
